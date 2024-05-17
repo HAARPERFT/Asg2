@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Order Pizza{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>Order Pizza</h2>
+    <form id="pizzaOrderForm" action="{{ url_for('order_pizza') }}" method="POST">
+        <div id="pizzaContainer">
+            <div class="pizza-order">
+                <label for="pizza_type_0">Pizza Type:</label>
+                <select id="pizza_type_0" name="pizza_type[]" required>
+                    <option value="Sardin">Sardin - MYR8.50</option>
+                    <option value="IkanBilis">IkanBilis - MYR9.00</option>
+                    <option value="Hawaiian">Hawaiian - MYR10.00</option>
+                    <option value="Daging">Daging - MYR9.50</option>
+                </select>
+                <label for="quantity_0">Quantity:</label>
+                <input type="number" id="quantity_0" name="quantity[]" min="1" required>
+            </div>
+        </div>
+        <button type="button" onclick="addPizzaOrder()">Add Another Pizza</button>
+        <button type="submit">Order</button>
+    </form>
+</div>
+
+<script>
+    let pizzaOrderCount = 1;
+
+    function addPizzaOrder() {
+        const container = document.getElementById('pizzaContainer');
+        const newOrder = document.createElement('div');
+        newOrder.classList.add('pizza-order');
+        
+        newOrder.innerHTML = `
+            <label for="pizza_type_MYR{pizzaOrderCount}">Pizza Type:</label>
+            <select id="pizza_type_MYR{pizzaOrderCount}" name="pizza_type[]" required>
+                <option value="Sardin">Sardin - MYR8.50</option>
+                <option value="IkanBilis">IkanBilis - MYR9.00</option>
+                <option value="Hawaiian">Hawaiian - MYR10.00</option>
+                <option value="Daging">Daging - MYR9.50</option>
+            </select>
+            <label for="quantity_MYR{pizzaOrderCount}">Quantity:</label>
+            <input type="number" id="quantity_MYR{pizzaOrderCount}" name="quantity[]" min="1" required>
+        `;
+
+        container.appendChild(newOrder);
+        pizzaOrderCount++;
+    }
+</script>
+{% endblock %}
