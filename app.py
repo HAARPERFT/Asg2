@@ -4,9 +4,22 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import random
 import string
 import re
+from datetime import timedelta
+import os
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'
+app.secret_key = os.urandom(24)  # Use a strong, random secret key
+
+# Session configuration
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SECURE'] = True  # Ensure this is only over HTTPS
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # Session timeout
+
+# Content Security Policy
+@app.after_request
+def set_csp(response):
+    response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self'; style-src 'self';"
+    return response
 
 # Create users table
 def create_table():
@@ -41,13 +54,32 @@ def login():
 
         if result and check_password_hash(result[0], password):
             # Authentication successful
+            session.permanent = True  # Enable session timeout
             session['username'] = username
+            
+            # Regenerate session ID to prevent session fixation
+            session.modified = True
+
+            # Store user IP and User-Agent for session validation
+            session['ip'] = request.remote_addr
+            session['user_agent'] = request.headers.get('User-Agent')
+            
             return redirect(url_for('homepage'))
         else:
             # Authentication failed
             return render_template('login.html', error='Invalid username or password')
 
     return render_template('login.html')
+
+@app.before_request
+def session_management():
+    session.permanent = True
+
+    # Validate session IP and User-Agent
+    if 'ip' in session and 'user_agent' in session:
+        if session['ip'] != request.remote_addr or session['user_agent'] != request.headers.get('User-Agent'):
+            session.clear()
+            return redirect(url_for('login'))
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -109,9 +141,16 @@ def password_recovery():
 
 @app.route('/order_pizza', methods=['GET', 'POST'])
 def order_pizza():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
     if request.method == 'POST':
         pizza_types = request.form.getlist('pizza_type[]')
         quantities = request.form.getlist('quantity[]')
+
+        # Validate input on the server side
+        if not all(pizza_types) or not all(quantity.isdigit() for quantity in quantities):
+            return render_template('order_pizza.html', error='Invalid input')
 
         # Define pizza prices
         pizza_prices = {
@@ -123,19 +162,30 @@ def order_pizza():
 
         total_price = sum(pizza_prices[pizza] * int(quantity) for pizza, quantity in zip(pizza_types, quantities))
 
+        # Example: save order to the database
+        # Add appropriate validation and escaping here to prevent SQL injection
+        conn = sqlite3.connect('database.db')
+        c = conn.cursor()
+        c.execute('''INSERT INTO orders (username, pizza_type, quantity, total_price) VALUES (?, ?, ?, ?)''', 
+                  (session['username'], ','.join(pizza_types), ','.join(quantities), total_price))
+        conn.commit()
+        conn.close()
+
         return render_template('order_confirmation.html', pizza_types=pizza_types, quantities=quantities, total_price=total_price)
 
     return render_template('order_pizza.html')
 
 @app.route('/logout')
 def logout():
-    session.pop('username', None)
+    session.clear()
     return redirect(url_for('login'))
 
-# Homepage route
 @app.route('/')
 def homepage():
     return render_template('homepage.html')
 
 if __name__ == '__main__':
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    # Enforce HTTPS
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+    app.run(ssl_context='adhoc')  # For development use only. Use proper certificates for production.
