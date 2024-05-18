@@ -4,19 +4,22 @@
 
 {% block content %}
 <div class="container">
-    <h2>Order Pizza</h2>
-    <form id="pizzaOrderForm" action="{{ url_for('order_pizza') }}" method="POST">
-        <div id="pizzaContainer">
+    <h2>Order Your Pizza</h2>
+    <form action="{{ url_for('order_pizza') }}" method="POST">
+       
+        <div class="pizza-order-wrapper">
             <div class="pizza-order">
-                <label for="pizza_type_0">Pizza Type:</label>
-                <select id="pizza_type_0" name="pizza_type[]" required>
-                    <option value="Sardin">Sardin - MYR8.50</option>
-                    <option value="IkanBilis">IkanBilis - MYR9.00</option>
-                    <option value="Hawaiian">Hawaiian - MYR10.00</option>
-                    <option value="Daging">Daging - MYR9.50</option>
+                <label for="pizza_type">Pizza Type:</label>
+                <select name="pizza_type[]" id="pizza_type">
+                    <option value="Margherita">Margherita - $8.50</option>
+                    <option value="Pepperoni">Pepperoni - $9.00</option>
+                    <option value="Hawaiian">Hawaiian - $10.00</option>
+                    <option value="Veggie">Veggie - $9.50</option>
                 </select>
-                <label for="quantity_0">Quantity:</label>
-                <input type="number" id="quantity_0" name="quantity[]" min="1" required>
+            </div>
+            <div class="pizza-order">
+                <label for="quantity">Quantity:</label>
+                <input type="number" name="quantity[]" id="quantity" min="1" max="10" value="1">
             </div>
         </div>
         <button type="button" onclick="addPizzaOrder()">Add Another Pizza</button>
@@ -25,27 +28,11 @@
 </div>
 
 <script>
-    let pizzaOrderCount = 1;
-
     function addPizzaOrder() {
-        const container = document.getElementById('pizzaContainer');
-        const newOrder = document.createElement('div');
-        newOrder.classList.add('pizza-order');
-        
-        newOrder.innerHTML = `
-            <label for="pizza_type_MYR{pizzaOrderCount}">Pizza Type:</label>
-            <select id="pizza_type_MYR{pizzaOrderCount}" name="pizza_type[]" required>
-                <option value="Sardin">Sardin - MYR8.50</option>
-                <option value="IkanBilis">IkanBilis - MYR9.00</option>
-                <option value="Hawaiian">Hawaiian - MYR10.00</option>
-                <option value="Daging">Daging - MYR9.50</option>
-            </select>
-            <label for="quantity_MYR{pizzaOrderCount}">Quantity:</label>
-            <input type="number" id="quantity_MYR{pizzaOrderCount}" name="quantity[]" min="1" required>
-        `;
-
-        container.appendChild(newOrder);
-        pizzaOrderCount++;
+        const form = document.querySelector('form');
+        const pizzaOrderWrapper = document.querySelector('.pizza-order-wrapper');
+        const newPizzaOrderWrapper = pizzaOrderWrapper.cloneNode(true);
+        form.insertBefore(newPizzaOrderWrapper, form.querySelector('button[type="submit"]'));
     }
 </script>
 {% endblock %}
